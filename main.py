@@ -7,10 +7,19 @@ import requests
 from bs4 import BeautifulSoup
 
 
+def env_bool(name, default):
+    value = os.getenv(name)
+    if value is None:
+        return default
+
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
 BSE_URL = "https://api.bseindia.com/BseIndiaAPI/api/AnnSubCategoryGetData/w"
 SEEN_FILE = os.getenv("SEEN_FILE", "seen.txt")
 POLL_SECONDS = int(os.getenv("POLL_SECONDS", "15"))
-SEND_STARTUP_MESSAGE = os.getenv("SEND_STARTUP_MESSAGE", "true").lower() == "true"
+BOT_ENABLED = env_bool("BOT_ENABLED", True)
+SEND_STARTUP_MESSAGE = env_bool("SEND_STARTUP_MESSAGE", True)
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
@@ -101,6 +110,7 @@ def describe_config():
     chat_status = "set" if TELEGRAM_CHAT_ID else "missing"
     print(
         "Config: "
+        f"BOT_ENABLED={BOT_ENABLED}, "
         f"TELEGRAM_BOT_TOKEN={token_status}, "
         f"TELEGRAM_CHAT_ID={chat_status}, "
         f"POLL_SECONDS={POLL_SECONDS}, "
@@ -123,6 +133,13 @@ def fetch_announcements():
 
 def run():
     describe_config()
+
+    if not BOT_ENABLED:
+        print(
+            "BOT_ENABLED=false, so the alert worker is exiting cleanly.",
+            flush=True,
+        )
+        sys.exit(0)
 
     if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
         print(
