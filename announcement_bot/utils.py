@@ -1,13 +1,32 @@
 from collections import deque
+import re
+from difflib import SequenceMatcher
 
 from bs4 import BeautifulSoup
 
 from announcement_bot.config import MAX_SEEN_HEADLINES, SEEN_FILE
 
+NORMALIZE_RE = re.compile(r"[^\w\s]")
+WHITESPACE_RE = re.compile(r"\s+")
+
 
 def clean_text(value, default="Unknown"):
     text = BeautifulSoup(value or "", "html.parser").get_text(" ").strip()
     return " ".join(text.split()) or default
+
+
+def normalize_text(value, default=""):
+    text = clean_text(value, default=default)
+    text = NORMALIZE_RE.sub(" ", text).strip().lower()
+    return WHITESPACE_RE.sub(" ", text)
+
+
+def similarity(a, b):
+    a_norm = normalize_text(a)
+    b_norm = normalize_text(b)
+    if not a_norm or not b_norm:
+        return 0.0
+    return SequenceMatcher(None, a_norm, b_norm).ratio()
 
 
 def load_seen():
